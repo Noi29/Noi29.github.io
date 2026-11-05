@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Noi29 | Aspiring Full Stack Developer</title>
+<meta name="description" content="Portfolio of Noi29, aspiring Full Stack Developer working with Java, HTML/CSS and Python.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --indigo: #06161B;
+    --indigo-2: #0E5A5C;
+    --paper: #F3F8F7;
+    --white: #FFFFFF;
+    --ink: #0F1F22;
+    --muted: #4F6669;
+    --rose: #2FE0BF;
+    --mint: #2FE0BF;
+    --line: #D7E5E2;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 1.0625rem; line-height: 1.65; }
+  h1, h2, h3 { font-family: "Sora", "DM Sans", system-ui, sans-serif; line-height: 1.15; margin: 0; }
+  a { color: #0B7A6E; }
+  a:focus-visible, .btn:focus-visible { outline: 3px solid var(--mint); outline-offset: 3px; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 1.5rem; }
+
+  /* Hero */
+  .hero { background: linear-gradient(rgba(6,22,27,.25), rgba(6,22,27,.25)), var(--indigo) url(images/portada.jpg) center / cover no-repeat; color: #fff; position: relative; overflow: hidden; min-height: 100vh; display: flex; flex-direction: column; }
+  .hero > .wrap { flex: 1; display: flex; flex-direction: column; width: 100%; }
+  .bar { position: relative; z-index: 2; display: flex; justify-content: center; align-items: center; padding: 1.5rem 0; gap: 1rem; flex-wrap: wrap; }
+  .bar strong { display: none; font-family: "Sora", sans-serif; font-size: 1.2rem; }
+  .bar nav a { color: #fff; text-decoration: none; margin: 0 .9rem; font-weight: 500; opacity: .85; }
+  .bar nav a:hover { opacity: 1; color: var(--mint); }
+  .intro { position: relative; z-index: 2; padding: 3rem 0 5rem; max-width: 720px; margin: auto; text-align: center; animation: rise .9s ease both; }
+  .intro .hi { color: var(--mint); font-weight: 700; margin: 0 0 .75rem; }
+  .intro h1 { font-size: clamp(2.6rem, 8vw, 5rem); font-weight: 800; letter-spacing: -.03em; margin-bottom: 1rem; }
+  .intro h1 span { display: block; font-size: .5em; font-weight: 600; letter-spacing: -.01em; color: #BFE3DD; margin-top: .6rem; }
+  .intro p.lead { font-size: 1.2rem; color: #BFE3DD; max-width: 52ch; margin: 0 auto 2rem; }
+  .btn { display: inline-block; padding: .85rem 1.6rem; border-radius: 999px; font-weight: 700; text-decoration: none; margin: 0 .7rem .7rem 0; transition: transform .15s ease; }
+  .btn:hover { transform: translateY(-2px); }
+  .btn.primary { background: var(--mint); color: #04201F; }
+  .btn.ghost { border: 2px solid rgba(255,255,255,.55); color: #fff; }
+  .btn.dark { background: var(--indigo); color: #fff; }
+  .chips { display: flex; flex-wrap: wrap; justify-content: center; gap: .6rem; margin-top: 1rem; }
+  .chip { padding: .35rem .9rem; border-radius: 999px; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.25); font-weight: 500; font-size: .95rem; }
+
+  /* Sections */
+  section { padding: 5rem 0; }
+  h2 { font-size: clamp(1.9rem, 4vw, 2.5rem); font-weight: 800; letter-spacing: -.02em; margin-bottom: .75rem; }
+  .intro-text { color: var(--muted); max-width: 60ch; margin: 0 0 2.5rem; }
+
+  .about-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 3rem; align-items: start; }
+  .about-grid p { margin: 0 0 1rem; max-width: 60ch; }
+  .facts { background: var(--white); border-radius: 18px; padding: 1.75rem; border: 1px solid var(--line); }
+  .facts h3 { font-size: 1.1rem; margin-bottom: 1rem; }
+  .facts ul { list-style: none; padding: 0; margin: 0; }
+  .facts li { padding: .65rem 0; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 1rem; }
+  .facts li:first-child { border-top: 0; padding-top: 0; }
+  .facts li span:first-child { color: var(--muted); }
+  .facts li span:last-child { font-weight: 700; text-align: right; }
+
+  /* Skills: the featured part of the page */
+  #skills { background: var(--white); }
+  .skill-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+  .panel { background: var(--paper); border-radius: 20px; padding: 2rem; border: 1px solid var(--line); }
+  .panel h3 { font-size: 1.3rem; margin-bottom: .25rem; }
+  .panel > p { color: var(--muted); margin: 0 0 1.5rem; }
+  .skill { margin-bottom: 1.35rem; }
+  .skill:last-child { margin-bottom: 0; }
+  .skill .row { display: flex; justify-content: space-between; font-weight: 700; margin-bottom: .45rem; }
+  .skill .row span:last-child { font-weight: 500; color: var(--muted); font-size: .95rem; }
+  .track { height: 12px; border-radius: 999px; background: var(--line); overflow: hidden; }
+  .fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--indigo-2), var(--rose)); width: var(--w); transform-origin: left; animation: grow 1.2s .3s ease both; }
+  .learning { margin-top: 2rem; display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; }
+  .learning strong { margin-right: .5rem; }
+  .tag { padding: .4rem 1rem; border-radius: 999px; border: 2px dashed var(--mint); font-weight: 700; color: #137B6C; background: #fff; }
+
+  .tag.have { border-style: solid; background: #D9F5EF; }
+  .langs { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.25rem; }
+  .lang { background: var(--white); border: 1px solid var(--line); border-radius: 18px; padding: 1.5rem; }
+  .lang h3 { font-size: 1.25rem; margin-bottom: .25rem; }
+  .lang p { margin: 0; color: var(--muted); }
+
+  .projects { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
+  .project { border: 2px dashed #B5D6D0; border-radius: 20px; padding: 2rem; background: var(--white); }
+  .project h3 { font-size: 1.2rem; margin-bottom: .5rem; }
+  .project p { margin: 0 0 1rem; color: var(--muted); }
+  .project .state { display: inline-block; padding: .25rem .8rem; border-radius: 999px; background: #D9F5EF; color: #0B6B5F; font-weight: 700; font-size: .9rem; }
+
+  #contact { background: var(--indigo); color: #fff; text-align: center; }
+  #contact p { color: #BFE3DD; max-width: 48ch; margin: 0 auto 2rem; }
+  footer { background: var(--indigo); color: #8FBDB6; text-align: center; padding: 0 0 2.5rem; font-size: .95rem; }
+
+  @keyframes rise { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+  @keyframes grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  @media (prefers-reduced-motion: reduce) { .intro, .fill { animation: none; } html { scroll-behavior: auto; } }
+  @media (max-width: 800px) {
+    .about-grid, .skill-cols { grid-template-columns: 1fr; }
+    section { padding: 3.5rem 0; }
+    .intro { padding: 2rem 0 4rem; }
+    .bar nav a { margin: 0 .6rem; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="bar">
+      <strong>Noi29</strong>
+      <nav aria-label="Main">
+        <a href="#about">About</a>
+        <a href="#skills">Skills</a>
+        <a href="#projects">Projects</a>
+        <a href="#contact">Contact</a>
+      </nav>
+    </div>
+    <div class="intro">
+      <p class="hi">Hello, I am</p>
+      <h1>Noi29 <span>Aspiring Full Stack Developer</span></h1>
+      <p class="lead">I design clean web pages and write the code that makes them work. I recently finished the German Abitur and I am looking for job opportunities where I can grow as a developer.</p>
+      <a class="btn primary" href="#skills">See my skills</a>
+      <a class="btn ghost" href="#contact">Contact me</a>
+      <div class="chips" aria-label="Main technologies">
+        <span class="chip">Java</span>
+        <span class="chip">HTML</span>
+        <span class="chip">CSS</span>
+        <span class="chip">JavaScript</span>
+        <span class="chip">Vue</span>
+        <span class="chip">Python</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section id="about">
+    <div class="wrap about-grid">
+      <div>
+        <h2>About me</h2>
+        <p>I recently finished the German Abitur and I am starting my career in software development. I enjoy turning an idea into something that works, from the first line of code to a finished page.</p>
+        <p>I speak Spanish, German and English, so I can work comfortably in international teams. I am looking for job opportunities to grow, such as an apprenticeship, a dual study program or an internship, where I can learn from experienced developers and contribute from day one.</p>
+      </div>
+      <aside class="facts">
+        <h3>At a glance</h3>
+        <ul>
+          <li><span>Education</span><span>German Abitur</span></li>
+          <li><span>Focus</span><span>Full Stack</span></li>
+          <li><span>Strongest in</span><span>Java and CSS</span></li>
+          <li><span>Languages</span><span>ES, DE, EN</span></li>
+          <li><span>Looking for</span><span>Job opportunities to grow</span></li>
+        </ul>
+      </aside>
+    </div>
+  </section>
+
+  <section id="skills">
+    <div class="wrap">
+      <h2>Skills</h2>
+      <p class="intro-text">What I already know, and what I am learning next.</p>
+      <div class="skill-cols">
+        <div class="panel">
+          <h3>Front end</h3>
+          <p>Everything the visitor sees.</p>
+          <div class="skill">
+            <div class="row"><span>CSS</span><span>Advanced</span></div>
+            <div class="track"><div class="fill" style="--w:90%"></div></div>
+          </div>
+          <div class="skill">
+            <div class="row"><span>HTML</span><span>Advanced</span></div>
+            <div class="track"><div class="fill" style="--w:85%"></div></div>
+          </div>
+          <div class="skill">
+            <div class="row"><span>JavaScript</span><span>Intermediate</span></div>
+            <div class="track"><div class="fill" style="--w:70%"></div></div>
+          </div>
+          <div class="skill">
+            <div class="row"><span>Vue</span><span>Intermediate</span></div>
+            <div class="track"><div class="fill" style="--w:55%"></div></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Back end</h3>
+          <p>The logic behind the scenes.</p>
+          <div class="skill">
+            <div class="row"><span>Java</span><span>Advanced</span></div>
+            <div class="track"><div class="fill" style="--w:85%"></div></div>
+          </div>
+          <div class="skill">
+            <div class="row"><span>PHP</span><span>Basic</span></div>
+            <div class="track"><div class="fill" style="--w:45%"></div></div>
+          </div>
+          <div class="skill">
+            <div class="row"><span>Python</span><span>Basic</span></div>
+            <div class="track"><div class="fill" style="--w:40%"></div></div>
+          </div>
+          <div class="skill">
+            <div class="row"><span>JSON</span><span>Basic</span></div>
+            <div class="track"><div class="fill" style="--w:40%"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="learning">
+        <strong>Tools:</strong>
+        <span class="tag have">VS Code</span>
+        <span class="tag have">PhpStorm</span>
+        <span class="tag have">Git</span>
+        <span class="tag have">GitHub</span>
+      </div>
+      <div class="learning" style="margin-top:1rem">
+        <strong>Learning next:</strong>
+        <span class="tag">SQL</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="languages">
+    <div class="wrap">
+      <h2>Languages</h2>
+      <p class="intro-text">I can work in three languages.</p>
+      <div class="langs">
+        <div class="lang"><h3>Spanish</h3><p>Native</p></div>
+        <div class="lang"><h3>German</h3><p>Fluent</p></div>
+        <div class="lang"><h3>English</h3><p>Fluent</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="projects" style="background:var(--white)">
+    <div class="wrap">
+      <h2>Projects</h2>
+      <p class="intro-text">My first projects are in progress. Each one will link to its code on GitHub.</p>
+      <div class="projects">
+        <div class="project">
+          <h3>Java console game</h3>
+          <p>A number-guessing game built with Java to practice logic and user input.</p>
+          <span class="state">Coming soon</span>
+        </div>
+        <div class="project">
+          <h3>Python password generator</h3>
+          <p>A small tool that creates secure passwords, built to learn Python.</p>
+          <span class="state">Coming soon</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact">
+    <div class="wrap">
+      <h2>Let us work together</h2>
+      <p>I am open to job opportunities, apprenticeships, dual study programs and internships. Send me a message and I will get back to you.</p>
+      <a class="btn primary" href="https://www.linkedin.com/in/YOUR-LINKEDIN-NAME">Message me on LinkedIn</a>
+      <a class="btn ghost" href="https://github.com/YOUR-GITHUB-USERNAME">View my GitHub</a>
+    </div>
+  </section>
+</main>
+
+<footer>&copy; 2026 Noi29</footer>
+
+</body>
+</html>
