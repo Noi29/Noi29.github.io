@@ -1,1 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cafe Web | Noa Rosales</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;700&family=Sora:wght@800&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#06161B; --card:#0E2A2E; --mint:#2FE0BF; --ink:#EAF6F4; --line:#1D4A4D; }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:1rem; min-height:100vh; display:flex; justify-content:center; background:var(--bg); color:var(--ink); font-family:"DM Sans",system-ui,sans-serif; }
+  main { width:100%; max-width:820px; }
+  h1 { font-family:Sora,sans-serif; margin:.3rem 0 .8rem; font-size:1.6rem; }
+  /* The wrapper is position:relative so the overlay can sit exactly on top of the canvas. */
+  .stage { position:relative; border-radius:18px; overflow:hidden; border:2px solid var(--line); }
+  canvas { display:block; width:100%; height:auto; }
+  #ov { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; padding:1.5rem; background:rgba(6,22,27,.88); }
+  #ov[hidden] { display:none; }
+  #ov h2 { font-family:Sora,sans-serif; margin:0 0 .5rem; }
+  #ov p { max-width:46ch; margin:0 auto 1rem; }
+  button { font:inherit; font-weight:700; cursor:pointer; border:0; border-radius:999px; padding:.6rem 1.2rem; background:var(--mint); color:#04201F; }
+  button:focus-visible { outline:3px solid #fff; outline-offset:2px; }
+  #ctl { display:flex; flex-wrap:wrap; gap:.5rem; justify-content:center; margin-top:.8rem; }
+  #ctl .item { width:64px; height:64px; padding:0; font-size:1.9rem; border-radius:16px; background:var(--card); border:2px solid var(--line); }
+  #ctl .item:hover { border-color:var(--mint); }
+  #ctl .alt { background:transparent; color:var(--ink); border:2px solid var(--line); }
+  .hint { text-align:center; color:#9FC4BE; font-size:.85rem; margin:.5rem 0 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Cafe Web</h1>
+  <div class="stage">
+    <canvas id="c" width="800" height="420"></canvas>
+    <div id="ov"></div>
+  </div>
+  <div id="ctl"></div>
+  <p class="hint">Click the food and drinks the customer ordered, then press Serve. Dogs get a free croqueta 🦴</p>
+</main>
 
+<script>
+// ---------- Data ----------
+// One list drives the menu, the buttons and the customers’ orders.
+// t = type: "f" food, "d" drink. e = emoji used as the product picture.
+const MENU = [
+  { n:"Pistachio croissant", e:"🥐", p:4.5, t:"f" },
+  { n:"Japanese egg sando",  e:"🥪", p:5.5, t:"f" },
+  { n:"Sesame sweet toast",  e:"🍞", p:4,   t:"f" },
+  { n:"Hot honey toast",     e:"🍯", p:4.5, t:"f" },
+  { n:"Miso caramel cookie", e:"🍪", p:3.5, t:"f" },
+  { n:"Coffee",              e:"☕", p:3,   t:"d" },
+  { n:"Matcha",              e:"🍵", p:4,   t:"d" }
+];
+// Seconds the customer waits before leaving. Edit these to change the difficulty.
+const URG = { rush:30, normal:45, relaxed:60 };
+const COLS = ["#E0675B", "#5B8DE0", "#E0B45B", "#9B6BE0", "#5BC98F"];
+const DAYS = 5, W = 800, H = 420, STAND = 300; // STAND = x where customers stop at the counter
+
+const cv = document.getElementById("c"), g = cv.getContext("2d");
+const ov = document.getElementById("ov"), ctl = document.getElementById("ctl");
+let S = { day:1, cash:0, rep:5, earned:0, goal:0, served:0, total:0 };
+let C = null;      // current customer
+let floats = [];   // floating texts such as "+8.50 EUR"
+
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const m = n => n.toFixed(2) + " EUR";
+const left = () => C.lim - (performance.now() - C.t0); // ms left for the customer
+
+// ---------- Controls (HTML buttons under the canvas) ----------
+MENU.forEach((p, i) => {
+  const b = document.createElement("button");
+  b.className = "item"; b.textContent = p.e; b.title = p.n; b.setAttribute("aria-label", p.n);
+  b.onclick = () => prep(i);
+  ctl.appendChild(b);
+});
+function addBtn(id, text, fn) {
+  const b = document.createElement("button");
+  b.id = id; b.textContent = text; b.onclick = fn;
+  if (id !== "sv") b.className = "alt";
+  ctl.appendChild(b);
+}
+addBtn("cq", "🦴 Croqueta", () => { C.croq = true; fl("Good dog!", C.x, 150, "#2FE0BF"); });
+addBtn("sv", "Serve", serve);
+addBtn("sa", "Send away", () => { lose(); end(0, "angry"); });
+
+// Buttons are only usable while the customer is waiting at the counter.
+function ui() {
+  ctl.style.visibility = C && C.st === "wait" ? "visible" : "hidden";
+  document.getElementById("cq").style.display = C && C.dog ? "" : "none";
+}
+
+function show(title, text, fn, btn = "Continue") {
+  ov.innerHTML = `<div><h2>${title}</h2><p>${text}</p><button id="ob">${btn}</button></div>`;
+  document.getElementById("ob").onclick = fn;
+  ov.hidden = false;
+}
+
+// ---------- Game flow ----------
+function newGame() { S = { day:1, cash:0, rep:5, earned:0, goal:0, served:0, total:0 }; startDay(); }
+
+// Difficulty grows each day: a higher goal and more customers.
+function startDay() {
+  S.goal = 10 + S.day * 8; S.total = 3 + S.day; S.earned = 0; S.served = 0;
+  show(`Day ${S.day} of ${DAYS}`, `Goal: ${m(S.goal)} in sales. Customers today: ${S.total}.`, nextC, "Open the cafe");
+}
+
+// Builds a random customer: always a drink, 70% chance of food, 30% chance of a dog.
+function nextC() {
+  ov.hidden = true;
+  const u = pick(Object.keys(URG));
+  const w = [pick(MENU.filter(x => x.t === "d"))];
+  if (Math.random() < 0.7) w.push(pick(MENU.filter(x => x.t === "f")));
+  C = { x:-70, st:"in", w, done:[], dog:Math.random() < 0.3, croq:false,
+        lim:URG[u] * 1000, t0:0, col:pick(COLS), mood:"neutral", after:null };
+  ui();
+}
+
+function prep(i) {
+  if (!C || C.st !== "wait") return;
+  const p = MENU[i];
+  if (C.w.includes(p) && !C.done.includes(p)) C.done.push(p);
+  else fl("Not ordered!", C.x, 150, "#FF7A7A");
+}
+
+function serve() {
+  if (C.done.length < C.w.length) { fl("Order incomplete!", C.x, 150, "#FF7A7A"); return; }
+  let pay = C.w.reduce((s, p) => s + p.p, 0), mood = "happy";
+  if (C.dog) {
+    if (C.croq) { pay += 2; fl("+2.00 tip", C.x, 120, "#2FE0BF"); }
+    else { pay /= 2; lose(); mood = "angry"; fl("Forgot the croqueta!", C.x, 120, "#FF7A7A"); }
+  }
+  end(pay, mood);
+}
+
+function lose() { S.rep = Math.max(0, S.rep - 1); }
+
+// Every customer ends here: the customer walks out and the next step runs once they are gone.
+function end(pay, mood) {
+  C.st = "out"; C.mood = mood;
+  S.earned += pay; S.cash += pay; S.served++;
+  if (pay > 0) fl("+" + m(pay), C.x, 90, "#2FE0BF");
+  C.after = () => {
+    if (S.rep <= 0) show("Game over", "Your reputation dropped to zero.", newGame, "Try again");
+    else if (S.served < S.total) nextC();
+    else endDay();
+  };
+  ui();
+}
+
+function endDay() {
+  if (S.earned < S.goal) return show("Game over", `You made ${m(S.earned)} and the goal was ${m(S.goal)}.`, newGame, "Try again");
+  if (S.day === DAYS) return show("You did it! 🎉", `All ${DAYS} days complete, with ${m(S.cash)} in the till.`, newGame, "Play again");
+  show(`Day ${S.day} complete`, `Sales: ${m(S.earned)} (goal ${m(S.goal)}).`, () => { S.day++; startDay(); }, "Next day");
+}
+
+function fl(t, x, y, col) { floats.push({ t, x, y, col, life:1 }); }
+
+// ---------- Drawing ----------
+function rr(x, y, w, h, r, fill) { g.beginPath(); g.roundRect(x, y, w, h, r); g.fillStyle = fill; g.fill(); }
+function circle(x, y, r, fill) { g.beginPath(); g.arc(x, y, r, 0, 7); g.fillStyle = fill; g.fill(); }
+
+function scene(now) {
+  // Wall and floor
+  const wall = g.createLinearGradient(0, 0, 0, STAND);
+  wall.addColorStop(0, "#164046"); wall.addColorStop(1, "#0F3034");
+  g.fillStyle = wall; g.fillRect(0, 0, W, H);
+  g.fillStyle = "#0A2326"; g.fillRect(0, STAND, W, H - STAND);
+  // Window, sign and plants
+  rr(560, 60, 180, 130, 12, "#8FD3E8"); rr(566, 66, 80, 118, 8, "#B9E8F5"); rr(654, 66, 80, 118, 8, "#B9E8F5");
+  rr(300, 14, 200, 38, 10, "#2FE0BF");
+  g.fillStyle = "#04201F"; g.font = "800 20px Sora, sans-serif"; g.textAlign = "center"; g.fillText("☕ CAFE JAVA", 400, 41);
+  g.font = "44px sans-serif"; g.fillText("🪴", 40, 290); g.fillText("🪴", 760, 290);
+}
+
+function customer(now) {
+  const x = C.x, bob = C.st === "in" ? Math.sin(now / 90) * 4 : 0;
+  // Dog (drawn first so the customer and counter overlap it)
+  if (C.dog) {
+    const dx = x - 85, wag = Math.sin(now / 80) * 8;
+    g.strokeStyle = "#B07A4A"; g.lineWidth = 6; g.lineCap = "round";
+    g.beginPath(); g.moveTo(dx - 28, 275); g.lineTo(dx - 42, 262 + wag); g.stroke();
+    g.beginPath(); g.ellipse(dx, 282, 30, 20, 0, 0, 7); g.fillStyle = "#C98F5A"; g.fill();
+    circle(dx + 26, 262, 15, "#C98F5A"); circle(dx + 18, 250, 6, "#8A5A32"); circle(dx + 34, 250, 6, "#8A5A32");
+    circle(dx + 30, 260, 2, "#000"); circle(dx + 40, 266, 3, "#000");
+    if (C.croq) { g.font = "20px sans-serif"; g.fillText("🦴", dx + 46, 288); }
+  }
+  // Body, head and face
+  rr(x - 36, 190 + bob, 72, 130, 22, C.col);
+  circle(x, 160 + bob, 32, "#F2C9A0");
+  g.beginPath(); g.arc(x, 152 + bob, 33, Math.PI, 0); g.fillStyle = "#3A2A22"; g.fill();
+  circle(x - 11, 160 + bob, 3.5, "#000"); circle(x + 11, 160 + bob, 3.5, "#000");
+  g.strokeStyle = "#000"; g.lineWidth = 3; g.beginPath();
+  if (C.mood === "happy") g.arc(x, 168 + bob, 10, 0.1, Math.PI - 0.1);
+  else if (C.mood === "angry") g.arc(x, 182 + bob, 10, Math.PI + 0.2, -0.2);
+  else { g.moveTo(x - 8, 176 + bob); g.lineTo(x + 8, 176 + bob); }
+  g.stroke();
+  if (C.st !== "wait") return;
+  // Timer bar above the head: shrinks with the time left, red in the last 25%
+  const f = Math.max(0, left() / C.lim);
+  rr(x - 40, 112, 80, 9, 5, "rgba(255,255,255,.2)");
+  rr(x - 40, 112, 80 * f, 9, 5, f < 0.25 ? "#FF7A7A" : "#2FE0BF");
+  g.fillStyle = "#fff"; g.font = "700 13px DM Sans, sans-serif"; g.fillText(Math.ceil(left() / 1000) + " s", x, 106);
+  // Speech bubble with the order: finished items are faded and ticked
+  const bw = 30 + C.w.length * 46;
+  rr(x + 44, 80, bw, 56, 14, "#fff");
+  C.w.forEach((p, i) => {
+    const ok = C.done.includes(p), ix = x + 66 + i * 46;
+    g.globalAlpha = ok ? 0.35 : 1; g.font = "30px sans-serif"; g.fillText(p.e, ix, 118); g.globalAlpha = 1;
+    if (ok) { g.fillStyle = "#12A07F"; g.font = "800 22px sans-serif"; g.fillText("✓", ix, 112); }
+  });
+}
+
+function counter() {
+  rr(0, 320, W, 100, 0, "#6B3F22"); rr(0, 310, W, 22, 6, "#A8693A");
+  // Tray with the items prepared so far
+  g.beginPath(); g.ellipse(400, 330, 120, 14, 0, 0, 7); g.fillStyle = "#D9D9D9"; g.fill();
+  if (C) { g.font = "34px sans-serif"; g.textAlign = "center"; C.done.forEach((p, i) => g.fillText(p.e, 400 + (i - (C.done.length - 1) / 2) * 50, 326)); }
+}
+
+function hud() {
+  g.fillStyle = "rgba(0,0,0,.35)"; g.fillRect(0, 380, W, 40);
+  g.fillStyle = "#EAF6F4"; g.font = "700 16px DM Sans, sans-serif"; g.textAlign = "left";
+  g.fillText(`Day ${S.day}/${DAYS}`, 16, 406);
+  g.fillText(`Cash ${m(S.cash)}`, 140, 406);
+  g.fillText(`Today ${m(S.earned)} / ${m(S.goal)}`, 340, 406);
+  g.fillText("Reputation " + "★".repeat(S.rep) + "☆".repeat(5 - S.rep), 590, 406);
+}
+
+// ---------- Main loop ----------
+// Runs ~60 times per second: update the customer, then redraw everything.
+function frame(now) {
+  if (C) {
+    if (C.st === "in") {               // walk in with easing; the clock starts on arrival
+      C.x += (STAND - C.x) * 0.05 + 0.6;
+      if (C.x >= STAND - 1) { C.x = STAND; C.st = "wait"; C.t0 = performance.now(); ui(); }
+    } else if (C.st === "wait" && left() <= 0) {
+      lose(); fl("Time is up!", C.x, 150, "#FF7A7A"); end(0, "angry");
+    } else if (C.st === "out") {       // walk out, then continue the game
+      C.x += 7;
+      if (C.x > W + 100) { const next = C.after; C = null; next(); }
+    }
+  }
+  scene(now);
+  if (C) customer(now);
+  counter();
+  floats.forEach(t => {                // floating texts rise and fade
+    t.y -= 0.6; t.life -= 0.012; g.globalAlpha = Math.max(0, t.life);
+    g.fillStyle = t.col; g.font = "800 20px Sora, sans-serif"; g.textAlign = "center"; g.fillText(t.t, t.x, t.y);
+  });
+  g.globalAlpha = 1; floats = floats.filter(t => t.life > 0);
+  hud();
+  requestAnimationFrame(frame);
+}
+
+ui();
+requestAnimationFrame(frame);
+show("Cafe Web", `Run your cafe for ${DAYS} days. Prepare each order before the customer’s bar runs out, and never forget a dog’s croqueta.`, newGame, "New game");
+</script>
+</body>
+</html>
